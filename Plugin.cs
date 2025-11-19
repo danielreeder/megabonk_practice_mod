@@ -3,14 +3,14 @@ using BepInEx.Unity.IL2CPP;
 using BepInEx.Logging;
 // using HarmonyLib;
 
-namespace MEGABONK_SIMPLE_MOD
+namespace practice_mod
 {
     [BepInPlugin(GUID, MODNAME, VERSION)]
     public class Plugin : BasePlugin
     {
         public const string
-            MODNAME = "MEGABONK_SIMPLE_MOD",
-            AUTHOR = "AUTHOR_NAME",
+            MODNAME = "practice_mod",
+            AUTHOR = "daniel_reeder",
             GUID = AUTHOR + "_" + MODNAME,
             VERSION = "0.1.0";
 
