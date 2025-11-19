@@ -10,7 +10,7 @@ namespace practice_mod
     {
         public const string
             MODNAME = "practice_mod",
-            AUTHOR = "daniel_reeder",
+            AUTHOR = "divinemamma",
             GUID = AUTHOR + "_" + MODNAME,
             VERSION = "0.1.0";
 

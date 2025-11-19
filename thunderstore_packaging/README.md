@@ -1,2 +1,2 @@
-# MEGABONK_SIMPLE_MOD
-Details
+# PRACTICE MOD
+practice_mod

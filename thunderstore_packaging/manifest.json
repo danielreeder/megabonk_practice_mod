@@ -1,8 +1,8 @@
 {
-    "name": "MEGABONK_SIMPLE_MOD",
+    "name": "practice_mod",
     "version_number": "0.1.0",
-    "website_url": "https://github.com/GITHUB_OWNER/GITHUB_REPO_NAME",
-    "description": "MEGABONK_SIMPLE_MOD_DESCRIPTION",
+    "website_url": "https://github.com/danielreeder/megabonk_practice_mod",
+    "description": "practice_mod_DESCRIPTION",
     "dependencies": [
         "BepInEx-BepInExPack_IL2CPP-6.0.733"
     ]
