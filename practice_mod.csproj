@@ -26,8 +26,14 @@
     <Reference Include="BepInEx.Unity.IL2CPP">
       <HintPath>Libs\BepInEx.Unity.IL2CPP.dll</HintPath>
     </Reference>
+    <Reference Include="Il2CppDummyDll">
+      <HintPath>Libs\Il2CppDummyDll.dll</HintPath>
+    </Reference>
 	<Reference Include="Il2CppInterop.Runtime">
 		<HintPath>Libs\Il2CppInterop.Runtime.dll</HintPath>
+	</Reference>
+	<Reference Include="Il2Cppmscorlib">
+	  <HintPath>Libs\Il2Cppmscorlib.dll</HintPath>
 	</Reference>
 	<Reference Include="UnityEngine">
 	  <HintPath>Libs\UnityEngine.dll</HintPath>
@@ -43,9 +49,6 @@
 	</Reference>
 	<Reference Include="UnityEngine.UI">
 	  <HintPath>Libs\UnityEngine.UI.dll</HintPath>
-	</Reference>
-	<Reference Include="UnityEngine.UIElementsModule">
-	  <HintPath>Libs\UnityEngine.UIElementsModule.dll</HintPath>
 	</Reference>
 	<Reference Include="UnityEngine.UIModule">
 	  <HintPath>Libs\UnityEngine.UIModule.dll</HintPath>

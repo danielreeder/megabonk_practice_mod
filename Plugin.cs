@@ -1,5 +1,7 @@
 ﻿using System;
 using Assets.Scripts.Actors.Enemies;
+using Assets.Scripts.Inventory__Items__Pickups.Items;
+using Assets.Scripts.Managers;
 using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
@@ -8,16 +10,16 @@ using Il2CppInterop.Runtime.Injection;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Shrine_Counter
+namespace Enemy_Counter
 {
     [BepInPlugin(GUID, MODNAME, VERSION)]
     public class Plugin : BasePlugin
     {
         public const string
-            MODNAME = "Shrine_Counter",
-            AUTHOR = "BedlessSleeper",
+            MODNAME = "Enemy_Counter",
+            AUTHOR = "Divinemamma",
             GUID = AUTHOR + "_" + MODNAME,
-            VERSION = "0.1.4";
+            VERSION = "0.1.0";
 
         internal static ManualLogSource log;
         private static GameObject EnemyCounter;
@@ -29,16 +31,29 @@ namespace Shrine_Counter
 
         public override void Load()
         {
-            log.LogInfo("Shrine Counter Mod loaded!");
+            log.LogInfo("Enemy Counter Mod loaded!");
 
             // Register GUI type
-            ClassInjector.RegisterTypeInIl2Cpp<EnemyCounterGUI>();
+            try
+            {
+                ClassInjector.RegisterTypeInIl2Cpp<EnemyCounterGUI>();
+
+            }
+            catch (ArgumentException ex)
+            {
+                log?.LogError($"[EnemyCounter] ClassInjector Failed: {ex}");
+            }
 
             // Patch all Harmony methods
             new Harmony(GUID).PatchAll();
 
             // Create the GUI
             CreateGUI();
+        }
+
+        public override bool Unload()
+        {
+            return true;
         }
 
         private static void CreateGUI()
@@ -73,6 +88,22 @@ namespace Shrine_Counter
         // --- Harmony Patches --- Enempy Spawn ==> Enemy Count +1
 
         [HarmonyPatch]
+        public static class InteractableBossSpawnerInteractPatch
+        {
+            static System.Reflection.MethodBase TargetMethod()
+            {
+                var type = AccessTools.TypeByName("InteractableBossSpawner");
+                return AccessTools.Method(type, "Interact");
+            }
+
+            static void Postfix()
+            {
+                log?.LogDebug("Interacted with Boss Curse Shrine");
+                GameManager.Instance.bossCurses += 10;
+            }
+        }
+
+        [HarmonyPatch]
         public static class EnemyManagerSpawnEnemyIntPatch
         {
             static System.Reflection.MethodBase TargetMethod()
@@ -85,18 +116,18 @@ namespace Shrine_Counter
             static void Postfix() => EnemyCount++;
         }
 
-        [HarmonyPatch]
-        public static class EnemyManagerSpawnEnemyVecPatch
-        {
-            static System.Reflection.MethodBase TargetMethod()
-            {
-                var type = AccessTools.TypeByName("EnemyManager");
-                return AccessTools.Method(type, "SpawnEnemy", [typeof(EnemyData), typeof(Vector3), typeof(int), typeof(bool), typeof(EEnemyFlag), typeof(bool)]);
-            }
+        //[HarmonyPatch]
+        //public static class EnemyManagerSpawnEnemyVecPatch
+        //{
+        //    static System.Reflection.MethodBase TargetMethod()
+        //    {
+        //        var type = AccessTools.TypeByName("EnemyManager");
+        //        return AccessTools.Method(type, "SpawnEnemy", [typeof(EnemyData), typeof(Vector3), typeof(int), typeof(bool), typeof(EEnemyFlag), typeof(bool)]);
+        //    }
 
-            //Counts shrine shit here
-            static void Postfix() => EnemyCount++;
-        }
+        //    //Counts enemy spawns
+        //    static void Postfix() => EnemyCount++;
+        //}
 
         [HarmonyPatch]
         public static class EnemyManagerRemoveEnemyPatch
@@ -107,7 +138,32 @@ namespace Shrine_Counter
                 return AccessTools.Method(type, "RemoveEnemy");
             }
 
-            static void Postfix() => EnemyCount--;
+            // counts enemy deaths
+            static void Postfix()
+            {
+                EnemyCount--;
+                log?.LogInfo("[ENEMY KILLED]");
+                ItemInventory itemInventory = GameManager.Instance.player.inventory.itemInventory;
+                
+                var randomItem = ItemUtility.GetRandomItem(0);
+                itemInventory.AddItem(randomItem.eItem);
+                log?.LogInfo(randomItem.GetName() + ": " + randomItem.GetDescription() + '\n');
+            }
+        }
+
+        [HarmonyPatch]
+        public static class GameManager_UpdatePatch
+        {
+            static System.Reflection.MethodBase TargetMethod()
+            {
+                var type = AccessTools.TypeByName("GameManager");
+                return AccessTools.Method(type, "Update");
+            }
+
+            static void Postfix()
+            {
+                log?.LogDebug(EnemyManager.Instance.GetNumEnemies());
+            }
         }
 
         [HarmonyPatch]
@@ -121,6 +177,7 @@ namespace Shrine_Counter
 
             static void Postfix()
             {
+                GameManager.Instance.player.baseMovementSpeed *= 5;
                 EnemyCount = 0;
                 IsRoundActive = true;
             }
