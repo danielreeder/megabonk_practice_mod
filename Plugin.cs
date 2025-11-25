@@ -26,6 +26,7 @@ namespace Enemy_Counter
 
         public static int EnemyCount { get; private set; } = 0;
         public static bool IsRoundActive { get; private set; } = false;
+        public static Texture ItemTexture { get; private set; } = null;
 
         public Plugin() => log = Log;
 
@@ -38,6 +39,8 @@ namespace Enemy_Counter
             {
                 ClassInjector.RegisterTypeInIl2Cpp<EnemyCounterGUI>();
 
+                
+
             }
             catch (ArgumentException ex)
             {
@@ -49,11 +52,6 @@ namespace Enemy_Counter
 
             // Create the GUI
             CreateGUI();
-        }
-
-        public override bool Unload()
-        {
-            return true;
         }
 
         private static void CreateGUI()
@@ -85,49 +83,16 @@ namespace Enemy_Counter
             }
         }
 
-        // --- Harmony Patches --- Enempy Spawn ==> Enemy Count +1
-
-        [HarmonyPatch]
-        public static class InteractableBossSpawnerInteractPatch
+        [HarmonyPatch(typeof(DataManager))]
+        [HarmonyPatch(nameof(DataManager.Load))]
+        public static class DataManagerLoadCustomItemPatch
         {
-            static System.Reflection.MethodBase TargetMethod()
+            [HarmonyPostfix]
+            internal static void Postfix(DataManager __instance)
             {
-                var type = AccessTools.TypeByName("InteractableBossSpawner");
-                return AccessTools.Method(type, "Interact");
-            }
-
-            static void Postfix()
-            {
-                log?.LogDebug("Interacted with Boss Curse Shrine");
-                GameManager.Instance.bossCurses += 10;
+                
             }
         }
-
-        [HarmonyPatch]
-        public static class EnemyManagerSpawnEnemyIntPatch
-        {
-            static System.Reflection.MethodBase TargetMethod()
-            {
-                var type = AccessTools.TypeByName("EnemyManager");
-                return AccessTools.Method(type, "SpawnEnemy", [typeof(EnemyData), typeof(int), typeof(bool), typeof(EEnemyFlag), typeof(bool)]);
-            }
-
-            //Counts shrine shit here
-            static void Postfix() => EnemyCount++;
-        }
-
-        //[HarmonyPatch]
-        //public static class EnemyManagerSpawnEnemyVecPatch
-        //{
-        //    static System.Reflection.MethodBase TargetMethod()
-        //    {
-        //        var type = AccessTools.TypeByName("EnemyManager");
-        //        return AccessTools.Method(type, "SpawnEnemy", [typeof(EnemyData), typeof(Vector3), typeof(int), typeof(bool), typeof(EEnemyFlag), typeof(bool)]);
-        //    }
-
-        //    //Counts enemy spawns
-        //    static void Postfix() => EnemyCount++;
-        //}
 
         [HarmonyPatch]
         public static class EnemyManagerRemoveEnemyPatch
@@ -141,16 +106,34 @@ namespace Enemy_Counter
             // counts enemy deaths
             static void Postfix()
             {
-                EnemyCount--;
                 log?.LogInfo("[ENEMY KILLED]");
                 ItemInventory itemInventory = GameManager.Instance.player.inventory.itemInventory;
-                
+
                 var randomItem = ItemUtility.GetRandomItem(0);
                 itemInventory.AddItem(randomItem.eItem);
                 log?.LogInfo(randomItem.GetName() + ": " + randomItem.GetDescription() + '\n');
+                ItemTexture = randomItem.GetIcon();
             }
         }
 
+        // Increase effect of boss curse shrines to +11 bosses
+        [HarmonyPatch]
+        public static class InteractableShrineCursedInteractPatch
+        {
+            static System.Reflection.MethodBase TargetMethod()
+            {
+                var type = AccessTools.TypeByName("InteractableShrineCursed");
+                return AccessTools.Method(type, "Interact");
+            }
+
+            static void Postfix()
+            {
+                log?.LogInfo("Interacted with Boss Curse Shrine");
+                GameManager.Instance.bossCurses += 10;
+            }
+        }
+
+        // update enemy count on every update
         [HarmonyPatch]
         public static class GameManager_UpdatePatch
         {
@@ -162,7 +145,7 @@ namespace Enemy_Counter
 
             static void Postfix()
             {
-                log?.LogDebug(EnemyManager.Instance.GetNumEnemies());
+                EnemyCount = EnemyManager.Instance.GetNumEnemies();
             }
         }
 
@@ -177,9 +160,21 @@ namespace Enemy_Counter
 
             static void Postfix()
             {
-                GameManager.Instance.player.baseMovementSpeed *= 5;
                 EnemyCount = 0;
                 IsRoundActive = true;
+
+                var randomItem = ItemUtility.GetRandomItem(100);
+                var description = randomItem.GetDescription();
+                var eItem = randomItem.eItem;
+                var icon = randomItem.GetIcon();
+                var inItemPool = randomItem.inItemPool;
+                var maxAmount = randomItem.maxAmount;
+                var rarity = randomItem.rarity;
+                var shortDescription = randomItem.GetShortDescription();
+                var unlockRequirement = randomItem.GetUnlockRequirement();
+
+                log?.LogInfo("[RANDOM ITEM ACQUIRED]:\n" + "Description: " + description);
+                log?.LogInfo("[RANDOM ITEM ACQUIRED]:\n" + "Icon: " + icon);
             }
         }
 
@@ -208,6 +203,7 @@ namespace Enemy_Counter
         {
             private Text textObj;
             private Canvas canvas;
+            private Image imageObj;
 
             private int lastCount = -1;
             private bool lastRoundActive = false;
@@ -222,6 +218,13 @@ namespace Enemy_Counter
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
                 UnityEngine.Object.DontDestroyOnLoad(canvasGO);
 
+
+                // create image object
+                GameObject imageGO = new GameObject("ItemImage");
+                imageGO.transform.SetParent(canvasGO.transform, false);
+
+                imageObj = imageGO.AddComponent<Image>();
+                imageObj.sprite = Sprite.Create
                 // Create the text object
                 GameObject textGO = new GameObject("EnemyCounterText");
                 textGO.transform.SetParent(canvasGO.transform, false);
@@ -280,5 +283,6 @@ namespace Enemy_Counter
             void OnDisable() => Plugin.SafeCleanup();
             void OnDestroy() => Plugin.SafeCleanup();
         }
+
     }
 }
